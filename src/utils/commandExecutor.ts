@@ -10,9 +10,20 @@ export async function executeCommand(
     const startTime = Date.now();
     Logger.commandExecution(command, args, startTime);
 
-    const childProcess = spawn(command, args, {
+    const useShell = process.platform === "win32";
+    const quoteArg = (arg: string): string => {
+      if (/^".*"$/.test(arg)) return arg;
+      if (/[\s"]/.test(arg)) {
+        return `"${arg.replace(/"/g, '\\"')}"`;
+      }
+      return arg;
+    };
+    const finalArgs = useShell ? args.map(quoteArg) : args;
+    Logger.debug(`[commandExecutor] spawn cmd=${command} args=${JSON.stringify(finalArgs)} shell=${useShell}`);
+
+    const childProcess = spawn(command, finalArgs, {
       env: process.env,
-      shell: process.platform === "win32",
+      shell: useShell,
       stdio: ["ignore", "pipe", "pipe"],
     });
 
